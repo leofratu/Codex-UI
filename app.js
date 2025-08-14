@@ -12,7 +12,8 @@ class CodexUI {
             theme: 'dark',
             autoScroll: true,
             syntaxHighlighting: true,
-            showTimestamps: true
+            showTimestamps: true,
+            textDirection: 'ltr'
         };
         
         this.thinkingStartTime = null;
@@ -28,6 +29,7 @@ class CodexUI {
         this.bindEvents();
         this.loadSettings();
         this.applyTheme();
+        this.applyTextDirection();
         this.setupFileUpload();
         this.adjustTextareaHeight();
     }
@@ -115,20 +117,21 @@ class CodexUI {
         if (!message && this.attachedFiles.length === 0) return;
         
         // Add user message
-        this.addMessage('user', message, this.attachedFiles);
-        
+        const filesToSend = [...this.attachedFiles];
+        this.addMessage('user', message, filesToSend);
+
         // Clear input and files
         messageInput.value = '';
         this.attachedFiles = [];
         this.updateAttachedFiles();
         this.adjustTextareaHeight();
-        
+
         // Show typing indicator
         this.setTyping(true);
-        
+
         try {
             // Send to backend/Codex CLI
-            const result = await this.callCodexAPI(message, this.attachedFiles);
+            const result = await this.callCodexAPI(message, filesToSend);
             
             // Add assistant response with thinking
             if (typeof result === 'object' && result.response) {
@@ -262,6 +265,10 @@ class CodexUI {
         let contentHtml = message.content;
         if (this.config.syntaxHighlighting && message.sender === 'assistant') {
             contentHtml = this.renderMarkdown(message.content);
+            const tmp = document.createElement('div');
+            tmp.innerHTML = contentHtml;
+            tmp.querySelectorAll('pre').forEach(pre => pre.setAttribute('dir', this.config.textDirection));
+            contentHtml = tmp.innerHTML;
         }
         
         // Add thinking section if available
@@ -293,7 +300,7 @@ class CodexUI {
         
         messageElement.innerHTML = `
             <div class="message-avatar">${avatarContent}</div>
-            <div class="message-content${statusClass}">
+            <div class="message-content${statusClass}" dir="${this.config.textDirection}">
                 ${filesHtml}
                 ${thinkingHtml}
                 ${contentHtml}
@@ -663,6 +670,7 @@ class CodexUI {
         document.getElementById('autoScroll').checked = this.config.autoScroll;
         document.getElementById('syntaxHighlighting').checked = this.config.syntaxHighlighting;
         document.getElementById('showTimestamps').checked = this.config.showTimestamps;
+        document.getElementById('textDirection').value = this.config.textDirection;
     }
     
     closeSettings() {
@@ -675,9 +683,11 @@ class CodexUI {
         this.config.autoScroll = document.getElementById('autoScroll').checked;
         this.config.syntaxHighlighting = document.getElementById('syntaxHighlighting').checked;
         this.config.showTimestamps = document.getElementById('showTimestamps').checked;
-        
+        this.config.textDirection = document.getElementById('textDirection').value;
+
         this.saveSettings();
         this.applyTheme();
+        this.applyTextDirection();
         this.closeSettings();
     }
     
@@ -711,7 +721,7 @@ class CodexUI {
     saveSettings() {
         localStorage.setItem('codex-ui-config', JSON.stringify(this.config));
     }
-    
+
     applyTheme() {
         document.body.setAttribute('data-theme', this.config.theme);
         
@@ -719,6 +729,20 @@ class CodexUI {
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.body.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
         }
+    }
+
+    applyTextDirection() {
+        document.body.setAttribute('dir', this.config.textDirection);
+        const input = document.getElementById('messageInput');
+        if (input) {
+            input.setAttribute('dir', this.config.textDirection);
+        }
+    }
+
+    setTextDirection(direction) {
+        this.config.textDirection = direction;
+        this.applyTextDirection();
+        this.saveSettings();
     }
     
     toggleMobileMenu() {
