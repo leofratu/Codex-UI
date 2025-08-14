@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codex UI - AI Coding Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with controls -->
+        <header class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-code"></i> Codex UI</h1>
+                <span class="version">v0.21.0</span>
+            </div>
+            <div class="header-right">
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <button class="btn btn-secondary" id="settingsBtn">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button class="btn btn-secondary" id="clearBtn">
+                    <i class="fas fa-trash"></i> Clear Chat
+                </button>
+            </div>
+        </header>
+
+        <!-- Main content area -->
+        <div class="main-content">
+            <!-- Sidebar with configuration -->
+            <aside class="sidebar">
+                <div class="config-section">
+                    <h3><i class="fas fa-brain"></i> Model Configuration</h3>
+                    
+                    <div class="form-group">
+                        <label for="modelSelect">Model & Reasoning Level</label>
+                        <select id="modelSelect" class="form-control">
+                            <option value="gpt-5,high" selected>GPT-5 (High reasoning) ✓ Active</option>
+                            <option value="gpt-5,medium">GPT-5 (Medium reasoning)</option>
+                            <option value="gpt-5,low">GPT-5 (Low reasoning)</option>
+                            <option value="o3,high">O3 (High reasoning)</option>
+                            <option value="o3,medium">O3 (Medium reasoning)</option>
+                            <option value="o3,low">O3 (Low reasoning)</option>
+                            <option value="o4-mini,high">O4-Mini (High reasoning)</option>
+                            <option value="o4-mini,medium">O4-Mini (Medium reasoning)</option>
+                            <option value="o4-mini,low">O4-Mini (Low reasoning)</option>
+                        </select>
+                        <small class="form-text">Backend always uses GPT-5 with high reasoning for optimal performance</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reasoningSummaries">Reasoning Summaries</label>
+                        <select id="reasoningSummaries" class="form-control">
+                            <option value="auto" selected>Auto</option>
+                            <option value="always">Always Show</option>
+                            <option value="never">Never Show</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3><i class="fas fa-shield-alt"></i> Security & Execution</h3>
+                    
+                    <div class="form-group">
+                        <label for="sandboxMode">Sandbox Mode</label>
+                        <select id="sandboxMode" class="form-control">
+                            <option value="read-only" selected>Read Only</option>
+                            <option value="workspace-write">Workspace Write</option>
+                            <option value="danger-full-access">Full Access (Dangerous)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="approvalPolicy">Approval Policy</label>
+                        <select id="approvalPolicy" class="form-control">
+                            <option value="untrusted">Untrusted Commands Only</option>
+                            <option value="on-failure">On Failure</option>
+                            <option value="on-request">On Request</option>
+                            <option value="never" selected>Never Ask</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="workingDir">Working Directory</label>
+                        <input type="text" id="workingDir" class="form-control" value="/Users/main/Desktop/.codex" placeholder="Enter working directory">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3><i class="fas fa-tools"></i> Quick Actions</h3>
+                    <button class="btn btn-secondary btn-block" id="testCodexBtn">
+                        <i class="fas fa-stethoscope"></i> Test Codex Status
+                    </button>
+                    <button class="btn btn-primary btn-block" id="fullAutoBtn">
+                        <i class="fas fa-magic"></i> Full Auto Mode
+                    </button>
+                    <button class="btn btn-warning btn-block" id="dangerModeBtn">
+                        <i class="fas fa-exclamation-triangle"></i> Danger Mode
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Chat area -->
+            <main class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system-message">
+                        <div class="message-content">
+                            <i class="fas fa-robot"></i>
+                            Welcome to Codex UI! I'm your AI coding assistant. I can help you with coding tasks, execute commands, and provide technical guidance. What would you like to work on today?
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="file-upload-area" id="fileUploadArea">
+                        <input type="file" id="fileInput" multiple accept=".txt,.md,.js,.ts,.py,.html,.css,.json,.xml,.yaml,.yml,.toml,.rs,.go,.java,.cpp,.c,.h,.hpp,.sh,.bash,.zsh">
+                        <div class="upload-text">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            Drop files here or click to browse
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <div class="input-actions">
+                            <button class="btn btn-icon" id="attachBtn" title="Attach files">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <button class="btn btn-icon" id="voiceBtn" title="Voice input">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                        <textarea 
+                            id="messageInput" 
+                            class="message-input" 
+                            placeholder="Type your message or coding request..."
+                            rows="1"
+                        ></textarea>
+                        <button class="btn btn-primary send-btn" id="sendBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Settings</h2>
+                <button class="btn btn-icon" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="apiEndpoint">API Endpoint</label>
+                    <input type="text" id="apiEndpoint" class="form-control" value="http://localhost:3000" placeholder="Enter API endpoint">
+                </div>
+                <div class="form-group">
+                    <label for="theme">Theme</label>
+                    <select id="theme" class="form-control">
+                        <option value="dark" selected>Dark</option>
+                        <option value="light">Light</option>
+                        <option value="auto">Auto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="autoScroll" checked> Auto-scroll to latest message
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="syntaxHighlighting" checked> Enable syntax highlighting
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="showTimestamps" checked> Show message timestamps
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="resetSettings">Reset to Defaults</button>
+                <button class="btn btn-primary" id="saveSettings">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
