@@ -499,42 +499,47 @@ function cleanCodexResponse(rawResponse) {
     
     console.log('After header cleanup:', JSON.stringify(text));
     
-    let thinking = '';
-    let response = '';
-    
-    // Look for thinking sections and separate from response
-    // Split by "thinking" markers first
-    const thinkingParts = text.split(/thinking\s*\n/i);
-    
-    if (thinkingParts.length > 1) {
-        // We have thinking sections
-        const thinkingSections = [];
-        
-        // Process all parts except the last one (which should be the response)
-        for (let i = 1; i < thinkingParts.length - 1; i++) {
-            const thinkingContent = thinkingParts[i].trim();
-            if (thinkingContent) {
-                thinkingSections.push(thinkingContent);
-            }
+    // Separate thinking sections from final response using markers
+    const lines = text.split('\n');
+    const thinkingLines = [];
+    const responseLines = [];
+    let inThinking = false;
+    let afterCodex = false;
+
+    for (const line of lines) {
+        const trimmed = line.trim().toLowerCase();
+
+        if (trimmed === 'thinking') {
+            inThinking = true;
+            continue;
         }
-        
-        // The last part after all thinking sections is the response
-        response = thinkingParts[thinkingParts.length - 1].trim();
-        
-        // Combine all thinking sections
-        if (thinkingSections.length > 0) {
-            thinking = thinkingSections.join('\n\n');
-            // Clean up thinking section - remove ** markers and extra whitespace
-            thinking = thinking.replace(/\*\*[^*]*\*\*/g, '').replace(/\n\s*\n/g, '\n').trim();
+
+        if (trimmed === 'codex') {
+            inThinking = false;
+            afterCodex = true;
+            continue;
         }
-    } else {
-        // No thinking markers found, treat everything as response
-        response = text;
+
+        if (afterCodex) {
+            responseLines.push(line);
+        } else if (inThinking || trimmed.length > 0) {
+            // Treat any pre-codex content as thinking to avoid leaking
+            thinkingLines.push(line);
+        }
     }
-    
+
+    let thinking = thinkingLines.join('\n');
+    let response = responseLines.join('\n');
+
+    // Clean up thinking section - remove ** markers and extra whitespace
+    thinking = thinking.replace(/\*\*[^*]*\*\*/g, '').replace(/\n\s*\n/g, '\n').trim();
+
+    // Remove helper prefix if present
+    response = response.replace(/^Response that should be displayed to the user\s*:\s*/i, '').trim();
+
     console.log('Final thinking:', JSON.stringify(thinking));
     console.log('Final response:', JSON.stringify(response));
-    
+
     return {
         response: response || 'Response received but could not be parsed.',
         thinking: thinking
