@@ -5,6 +5,7 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const multer = require('multer');
 const os = require('os');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -198,15 +199,25 @@ app.post('/api/codex/execute', upload.array('files'), async (req, res) => {
             }
         }
 
-        // Clean up the response
+        // Clean up the response using Gemini
         console.log('Raw Codex stdout:', JSON.stringify(result.stdout));
         console.log('Raw Codex stderr:', JSON.stringify(result.stderr));
-        
-        const cleanedResponse = cleanCodexResponse(result.stdout);
+
+        let finalResponse = '';
+        try {
+            finalResponse = await stripReasoningWithGemini(result.stdout);
+        } catch (geminiError) {
+            console.error('Gemini processing failed:', geminiError);
+        }
+
+        if (!finalResponse) {
+            const fallback = cleanCodexResponse(result.stdout);
+            finalResponse = fallback.response;
+        }
 
         res.json({
-            response: cleanedResponse.response,
-            thinking: cleanedResponse.thinking,
+            response: finalResponse || 'No response from Codex',
+            thinking: '',
             error: result.stderr,
             exitCode: result.exitCode,
             timestamp: new Date().toISOString()
@@ -397,6 +408,30 @@ app.get('/api/codex/sessions', async (req, res) => {
         });
     }
 });
+
+// Use Google Gemini to strip thinking/analysis from Codex output
+async function stripReasoningWithGemini(rawText) {
+    const apiKey = process.env.api;
+    if (!apiKey) {
+        console.warn('Gemini API key not configured');
+        return '';
+    }
+
+    const prompt = `From the input, strip all thinking/analysis and return only the stated answer. Do not summarize or rephrase; copy the answer verbatim. No labels or extra text.\n\n${rawText}`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+        })
+    });
+
+    const data = await response.json();
+    const parts = data?.candidates?.[0]?.content?.parts;
+    const text = parts ? parts.map(p => p.text).join('') : '';
+    return text.trim();
+}
 
 // Execute Codex CLI command
 function executeCodex(args) {
