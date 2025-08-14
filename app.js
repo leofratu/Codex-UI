@@ -2,8 +2,6 @@
 class CodexUI {
     constructor() {
         this.config = {
-            model: 'gpt-5',
-            reasoningLevel: 'medium',
             reasoningSummaries: 'auto',
             sandboxMode: 'read-only',
             approvalPolicy: 'never',
@@ -47,12 +45,6 @@ class CodexUI {
         messageInput.addEventListener('input', () => this.adjustTextareaHeight());
         messageInput.addEventListener('keydown', (e) => this.handleKeyDown(e));
         sendBtn.addEventListener('click', () => this.sendMessage());
-        
-        // Configuration changes (UI only - backend always uses GPT-5 high)
-        document.getElementById('modelSelect').addEventListener('change', (e) => {
-            // Show info that backend always uses GPT-5 high
-            this.addMessage('system', `⚙️ **Model Selection**\n\n*Note: Backend always uses GPT-5 with high reasoning for optimal performance, regardless of UI selection.*`);
-        });
         
         document.getElementById('reasoningSummaries').addEventListener('change', (e) => {
             this.config.reasoningSummaries = e.target.value;
@@ -154,8 +146,6 @@ class CodexUI {
             
             // Add configuration
             formData.append('message', message);
-            formData.append('model', this.config.model);
-            formData.append('reasoningLevel', this.config.reasoningLevel);
             formData.append('reasoningSummaries', this.config.reasoningSummaries);
             formData.append('sandboxMode', this.config.sandboxMode);
             formData.append('approvalPolicy', this.config.approvalPolicy);
@@ -200,9 +190,9 @@ class CodexUI {
     simulateCodexResponse(message, command) {
         const responses = [
             `I'll help you with that. Let me analyze your request: "${message}"`,
-            `Based on your configuration (Model: ${this.config.model}, Reasoning: ${this.config.reasoningLevel}), here's what I found...`,
+            `Based on your configuration (Model: GPT-5, Reasoning: High), here's what I found...`,
             `I understand you want to work with: "${message}". Let me break this down step by step.`,
-            `Processing your request with the following settings:\n- Model: ${this.config.model}\n- Sandbox: ${this.config.sandboxMode}\n- Working Directory: ${this.config.workingDir}\n\nHere's my response...`
+            `Processing your request with the following settings:\n- Model: GPT-5 (High reasoning)\n- Sandbox: ${this.config.sandboxMode}\n- Working Directory: ${this.config.workingDir}\n\nHere's my response...`
         ];
         
         const randomResponse = responses[Math.floor(Math.random() * responses.length)];
@@ -396,13 +386,8 @@ class CodexUI {
                 elapsedElement.textContent = `${elapsed.toFixed(1)}s`;
             }
             
-            // Estimate based on reasoning level and elapsed time
-            let estimatedTotal = 15; // default
-            if (this.config.reasoningLevel === 'low') {
-                estimatedTotal = 10;
-            } else if (this.config.reasoningLevel === 'high') {
-                estimatedTotal = 30;
-            }
+            // Estimate based on high reasoning effort
+            let estimatedTotal = 30;
             
             // Adjust estimate as time progresses
             if (elapsed > estimatedTotal) {
@@ -463,33 +448,6 @@ class CodexUI {
             document.getElementById('sandboxMode').value = 'danger-full-access';
             this.saveSettings();
             this.addMessage('system', '⚠️ Danger mode enabled: Commands will execute without sandboxing!', [], 'error');
-        }
-    }
-    
-    async updateCodexConfig(model, reasoningLevel) {
-        try {
-            const response = await fetch(`${this.config.apiEndpoint}/api/codex/config`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ model, reasoningLevel })
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `HTTP ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log('Codex config updated:', data);
-            
-            // Show success message
-            this.addMessage('system', `⚙️ **Configuration Updated**\n\nModel: ${model}\nReasoning Level: ${reasoningLevel}\n\n*Codex config file has been updated. New settings will apply to future conversations.*`);
-            
-        } catch (error) {
-            console.error('Error updating Codex config:', error);
-            this.addMessage('system', `❌ **Configuration Update Failed**\n\nError: ${error.message}\n\nFalling back to runtime configuration only.`, [], 'error');
         }
     }
     
@@ -710,8 +668,6 @@ class CodexUI {
         }
         
         // Apply loaded settings to UI
-        const modelValue = `${this.config.model},${this.config.reasoningLevel}`;
-        document.getElementById('modelSelect').value = modelValue;
         document.getElementById('reasoningSummaries').value = this.config.reasoningSummaries;
         document.getElementById('sandboxMode').value = this.config.sandboxMode;
         document.getElementById('approvalPolicy').value = this.config.approvalPolicy;

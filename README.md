@@ -8,8 +8,7 @@ A beautiful, modern web interface for the Codex CLI that transforms the command-
 
 ### 🎯 Core Functionality
 - **Chat Interface**: Intuitive conversation-style interaction with Codex
-- **Model Selection**: Choose from multiple AI models (GPT-5, GPT-4, Claude 3, O3, O1, etc.)
-- **Reasoning Levels**: Configure reasoning effort (Low, Medium, High)
+- **Model**: Always uses GPT-5 with high reasoning for optimal performance
 - **Sandbox Controls**: Multiple security levels (Read-only, Workspace-write, Full-access)
 - **Approval Policies**: Control when human approval is required
 
@@ -64,18 +63,8 @@ npm run dev
 
 ## 🎛️ Configuration
 
-### Model & Reasoning Selection
-Choose from available AI models with integrated reasoning levels:
-- **GPT-5**: Latest OpenAI model (Low/Medium/High reasoning)
-- **O3**: OpenAI reasoning model (Low/Medium/High reasoning)  
-- **O4-Mini**: Compact OpenAI model (Low/Medium/High reasoning)
-
-**Note**: Model routing can be configured in the codex config.toml file
-
-### Reasoning Levels
-- **Low**: Fast responses (~10s thinking time)
-- **Medium**: Balanced performance (~15s thinking time)
-- **High**: Deep thinking (~30s thinking time)
+### Model & Reasoning
+Codex UI uses **GPT-5 with high reasoning** for all interactions. Model routing is fixed for optimal performance.
 
 ### Thinking Progress Indicator
 - **Real-time timer**: Shows elapsed thinking time
@@ -149,8 +138,6 @@ The UI supports automatic dark/light theme switching based on your system prefer
 
 ### Configuration
 All settings are automatically saved to localStorage and persist between sessions:
-- Model selection
-- Reasoning levels
 - Security settings
 - Theme preferences
 - UI options
@@ -207,7 +194,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Related Projects
 
 - [OpenAI Codex](https://openai.com/codex) - The underlying AI model
-- [Anthropic Claude](https://anthropic.com) - Alternative AI model
 - [Cursor IDE](https://cursor.sh) - AI-powered code editor
 
 ## 🆘 Support
