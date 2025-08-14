@@ -120,14 +120,7 @@ app.get('/api/models', async (req, res) => {
     try {
         // In a real implementation, you might query the Codex CLI for available models
         const models = [
-            { id: 'gpt-5', name: 'GPT-5', description: 'Latest OpenAI model' },
-            { id: 'gpt-4', name: 'GPT-4', description: 'Previous generation OpenAI model' },
-            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 variant' },
-            { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Anthropic\'s most capable model' },
-            { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced Anthropic model' },
-            { id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast Anthropic model' },
-            { id: 'o3', name: 'O3', description: 'OpenAI reasoning model' },
-            { id: 'o1', name: 'O1', description: 'OpenAI reasoning model' }
+            { id: 'gpt-5', name: 'GPT-5', description: 'Latest OpenAI model (High reasoning only)' }
         ];
         
         res.json({ models });
@@ -142,8 +135,6 @@ app.post('/api/codex/execute', upload.array('files'), async (req, res) => {
     try {
         const {
             message,
-            model = 'gpt-5',
-            reasoningLevel = 'medium',
             reasoningSummaries = 'auto',
             sandboxMode = 'read-only',
             approvalPolicy = 'never',
