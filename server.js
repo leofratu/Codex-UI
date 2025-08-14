@@ -6,6 +6,7 @@ const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const multer = require('multer');
 const os = require('os');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -121,14 +122,7 @@ app.get('/api/models', async (req, res) => {
     try {
         // In a real implementation, you might query the Codex CLI for available models
         const models = [
-            { id: 'gpt-5', name: 'GPT-5', description: 'Latest OpenAI model' },
-            { id: 'gpt-4', name: 'GPT-4', description: 'Previous generation OpenAI model' },
-            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Faster GPT-4 variant' },
-            { id: 'claude-3-opus', name: 'Claude 3 Opus', description: 'Anthropic\'s most capable model' },
-            { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', description: 'Balanced Anthropic model' },
-            { id: 'claude-3-haiku', name: 'Claude 3 Haiku', description: 'Fast Anthropic model' },
-            { id: 'o3', name: 'O3', description: 'OpenAI reasoning model' },
-            { id: 'o1', name: 'O1', description: 'OpenAI reasoning model' }
+            { id: 'gpt-5', name: 'GPT-5', description: 'Latest OpenAI model (High reasoning only)' }
         ];
         
         res.json({ models });
@@ -143,8 +137,6 @@ app.post('/api/codex/execute', upload.array('files'), async (req, res) => {
     try {
         const {
             message,
-            model = 'gpt-5',
-            reasoningLevel = 'medium',
             reasoningSummaries = 'auto',
             sandboxMode = 'read-only',
             approvalPolicy = 'never',
@@ -208,15 +200,25 @@ app.post('/api/codex/execute', upload.array('files'), async (req, res) => {
             }
         }
 
-        // Clean up the response
+        // Clean up the response using Gemini
         console.log('Raw Codex stdout:', JSON.stringify(result.stdout));
         console.log('Raw Codex stderr:', JSON.stringify(result.stderr));
-        
-        const cleanedResponse = cleanCodexResponse(result.stdout);
+
+        let finalResponse = '';
+        try {
+            finalResponse = await stripReasoningWithGemini(result.stdout);
+        } catch (geminiError) {
+            console.error('Gemini processing failed:', geminiError);
+        }
+
+        if (!finalResponse) {
+            const fallback = cleanCodexResponse(result.stdout);
+            finalResponse = fallback.response;
+        }
 
         res.json({
-            response: cleanedResponse.response,
-            thinking: cleanedResponse.thinking,
+            response: finalResponse || 'No response from Codex',
+            thinking: '',
             error: result.stderr,
             exitCode: result.exitCode,
             timestamp: new Date().toISOString()
@@ -407,6 +409,30 @@ app.get('/api/codex/sessions', async (req, res) => {
         });
     }
 });
+
+// Use Google Gemini to strip thinking/analysis from Codex output
+async function stripReasoningWithGemini(rawText) {
+    const apiKey = process.env.api;
+    if (!apiKey) {
+        console.warn('Gemini API key not configured');
+        return '';
+    }
+
+    const prompt = `From the input, strip all thinking/analysis and return only the stated answer. Do not summarize or rephrase; copy the answer verbatim. No labels or extra text.\n\n${rawText}`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }]
+        })
+    });
+
+    const data = await response.json();
+    const parts = data?.candidates?.[0]?.content?.parts;
+    const text = parts ? parts.map(p => p.text).join('') : '';
+    return text.trim();
+}
 
 // Execute Codex CLI command
 function executeCodex(args) {
