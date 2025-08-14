@@ -204,10 +204,12 @@ app.post('/api/codex/execute', upload.array('files'), async (req, res) => {
         console.log('Raw Codex stdout:', JSON.stringify(result.stdout));
         console.log('Raw Codex stderr:', JSON.stringify(result.stderr));
 
+        // Prefer Gemini's cleaned response
         let finalResponse = '';
         try {
-            const geminiResult = await stripReasoningWithGemini(result.stdout);
-            if (geminiResult && !/thinking/i.test(geminiResult)) {
+            const rawOutput = [result.stdout, result.stderr].filter(Boolean).join('\n');
+            const geminiResult = await stripReasoningWithGemini(rawOutput);
+            if (geminiResult) {
                 finalResponse = geminiResult;
             }
         } catch (geminiError) {
